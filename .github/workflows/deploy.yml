@@ -5,9 +5,8 @@
 
 name: Deploy reports
 
+# nipreps/mriqc's integration-reports.yml dispatches this when Integration succeeds
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   push:
     branches: [ main ]
   workflow_dispatch:

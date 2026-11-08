@@ -6,15 +6,18 @@ served at <https://www.nipreps.org/mriqc-ci-reports/>.
 
 ## How it works
 
-- `.github/workflows/deploy.yml` runs every 15 minutes, on pushes to `main`, and on demand.
+- `.github/workflows/deploy.yml` runs when Integration succeeds on nipreps/mriqc's master or
+  a pull request, on pushes to `main`, and on demand. nipreps/mriqc's
+  `integration-reports.yml` starts it through the `mriqc-ci-reports` GitHub App, which has
+  Actions write access to this repository only.
 - `collect.py` takes the most recent successful Integration run for `master` and for each
   open pull request, downloads its `reports-*-amd64` artifacts, and writes an index page.
   - It exits early when the runs match the deployed `manifest.json`.
   - Pull requests by members and collaborators of nipreps/mriqc are listed. For anyone
     else, a maintainer adds the `ci-reports` label, because the reports' HTML is served
     on nipreps.org.
-  - The site is capped at 900 MB (GitHub Pages allows 1 GB). Reports drop out when their
-    artifacts expire, after 14 days.
+  - The site is capped at 900 MB (GitHub Pages allows 1 GB). Closed pull requests, and
+    reports whose artifacts have expired (after 14 days), drop out at the next deployment.
 - The site is deployed as a Pages artifact, so nothing is committed and the repository
   does not grow.
 
@@ -29,6 +32,8 @@ python3 collect.py site --force
 - Pages: source "GitHub Actions".
 - `MRIQC_READ_TOKEN` (optional secret): a token with Actions read access on nipreps/mriqc,
   used instead of the workflow's own token.
+- In nipreps/mriqc: the `CI_REPORTS_CLIENT_ID` variable and `CI_REPORTS_PRIVATE_KEY` secret
+  of the `mriqc-ci-reports` App.
 
 ## Data
 
