@@ -1,0 +1,57 @@
+# Publish the latest MRIQC integration reports to GitHub Pages.
+#
+# The site is rebuilt from nipreps/mriqc's report artifacts and deployed as a Pages
+# artifact, so nothing is ever committed and the repository does not grow.
+
+name: Deploy reports
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if no run has changed
+        type: boolean
+        default: false
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.collect.outputs.changed }}
+    steps:
+    - uses: actions/checkout@v7
+    - name: Collect the reports
+      id: collect
+      env:
+        GH_TOKEN: ${{ secrets.MRIQC_READ_TOKEN || github.token }}
+        # A push changes collect.py, so the site is rebuilt
+        FORCE: ${{ (github.event_name == 'push' || inputs.force) && '--force' || '' }}
+      run: python3 collect.py site $FORCE
+    - uses: actions/upload-pages-artifact@v5
+      if: steps.collect.outputs.changed == 'true'
+      with:
+        path: site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - id: deployment
+      uses: actions/deploy-pages@v5

@@ -1,0 +1,13 @@
+# The same style as nipreps/mriqc
+line-length = 99
+
+[lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "UP", "S", "BLE", "B", "A", "C4", "ISC", "Q"]
+# urllib on a fixed https URL; gh called without a shell
+ignore = ["S310", "S603", "S607"]
+
+[lint.flake8-quotes]
+inline-quotes = "single"
+
+[format]
+quote-style = "single"
