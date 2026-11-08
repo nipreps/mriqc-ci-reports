@@ -1,6 +1,6 @@
 """Gather the latest integration reports of nipreps/mriqc into a static site.
 
-For master and for each open pull request, take the most recent finished run of the
+For master and for each open pull request, take the most recent successful run of the
 Integration workflow, download its amd64 report artifacts, and write index pages.
 The site serves the reports' HTML on nipreps.org, so a pull request is included only
 if its author is a member or collaborator of nipreps/mriqc, or a maintainer has added
@@ -22,8 +22,6 @@ REPO = 'nipreps/mriqc'
 WORKFLOW = 'integration.yml'
 LABEL = 'ci-reports'
 TRUSTED = {'OWNER', 'MEMBER', 'COLLABORATOR'}
-# Cancelled runs (superseded by a newer push) may have no reports
-FINISHED = {'success', 'failure'}
 MAX_BYTES = 900 * 1024**2
 # Artifact ``reports-<dataset>-amd64`` holds ``group_<modality>.html``
 MODALITIES = {'dwi': 'dwi', 'flair': 'FLAIR'}
@@ -42,17 +40,16 @@ def gh_api(path):
     return json.loads(out.stdout)
 
 
-def finished_runs(**params):
-    """Finished Integration runs, newest first."""
+def successful_runs(**params):
+    """Successful Integration runs, newest first."""
     query = '&'.join(
-        f'{k}={v}' for k, v in {'status': 'completed', 'per_page': 100, **params}.items()
+        f'{k}={v}' for k, v in {'status': 'success', 'per_page': 100, **params}.items()
     )
-    runs = gh_api(f'repos/{REPO}/actions/workflows/{WORKFLOW}/runs?{query}')['workflow_runs']
-    return [r for r in runs if r['conclusion'] in FINISHED]
+    return gh_api(f'repos/{REPO}/actions/workflows/{WORKFLOW}/runs?{query}')['workflow_runs']
 
 
 def pr_run(pr, runs):
-    """The run of the PR's head commit, else the PR branch's latest (a newer one is running)."""
+    """The run of the PR's head commit, else the branch's latest (the head's is running or failed)."""
     head = pr['head']
     for run in runs:
         if run['head_sha'] == head['sha']:
@@ -70,9 +67,9 @@ def pr_run(pr, runs):
 def wanted_refs():
     """Master first, then open PRs by most recent update."""
     refs = []
-    if master := finished_runs(branch='master', event='push'):
+    if master := successful_runs(branch='master', event='push'):
         refs.append({'name': 'master', 'title': 'master', 'url': None, 'run': master[0]})
-    pr_runs = finished_runs(event='pull_request')
+    pr_runs = successful_runs(event='pull_request')
     pulls = gh_api(f'repos/{REPO}/pulls?state=open&sort=updated&direction=desc&per_page=100')
     for pr in pulls:
         labels = {label['name'] for label in pr['labels']}

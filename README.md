@@ -7,7 +7,7 @@ served at <https://www.nipreps.org/mriqc-ci-reports/>.
 ## How it works
 
 - `.github/workflows/deploy.yml` runs every 15 minutes, on pushes to `main`, and on demand.
-- `collect.py` takes the most recent finished Integration run for `master` and for each
+- `collect.py` takes the most recent successful Integration run for `master` and for each
   open pull request, downloads its `reports-*-amd64` artifacts, and writes an index page.
   - It exits early when the runs match the deployed `manifest.json`.
   - Pull requests by members and collaborators of nipreps/mriqc are listed. For anyone
